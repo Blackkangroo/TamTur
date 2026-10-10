@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ isletme_adi }} - Yapay Zekâ Asistanı</title>
+  <!--
+    app/templates/index.html - Karşılama sayfası (B2C). Modül G'nin Flask tarafı.
+    Ziyaretçi yapay zekâ ile sohbet eder, isterse isim/telefon bırakır.
+    Düzen Z-Pattern: (1) sol üst logo + slogan -> (2) sağ üst panel bağlantısı ->
+    (3) çapraz: solda tanıtım + hizmet kartları, sağda cam görünümlü (glassmorphism) sohbet kartı ->
+    (4) en alt: isim/telefon formu (gözün en son durduğu yer = istediğimiz eylem).
+    Element ID'leri Wix sayfasıyla AYNI: mesajGirisi, sorBtn, cevapAlani,
+    isimGirisi, telefonGirisi, kaydetBtn, durumMesaji. Bir harf değişirse Wix kodu da değişmeli.
+    CDN yok: tüm CSS ve JS bu dosyanın içinde. İşletme adı ve slogan routes.py'den gelir
+    (render_template(... isletme_adi=..., slogan=...)); kaynakları config.py'deki BUSINESS_* sabitleridir.
+  -->
+  <style>
+    /* ---------- Marka renkleri: tek yerden değiştirin ----------
+       DEĞİŞTİR: kendi işletmenize göre (Boğaz mavisi ve taş tonları Tam Tur içindir) */
+    :root {
+      --marka: #1f4e79;        /* butonlar, logo, kullanıcı baloncuğu */
+      --marka-koyu: #12304d;   /* başlıklar */
+      --metin: #1f2933;
+      --metin-soluk: #4f5f6f;
+      --zemin-1: #eaf2f8;      /* arka plan geçişinin üç rengi */
+      --zemin-2: #c6d8e8;
+      --zemin-3: #5a7d9c;
+      --basari: #1e7b45;
+      --hata: #b42318;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: var(--metin);
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--zemin-1) 0%, var(--zemin-2) 55%, var(--zemin-3) 100%);
+      background-attachment: fixed;
+    }
+    .sayfa { max-width: 1040px; margin: 0 auto; padding: 24px 16px 40px; }
+
+    /* Ekranda görünmeyen ama ekran okuyucunun okuduğu etiket (erişilebilirlik) */
+    .gorunmez { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* ---------- Z-Pattern (1)-(2): üst çizgi. Logo solda, panel bağlantısı sağda ---------- */
+    .ust-cizgi { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 36px; flex-wrap: wrap; }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo .harf {
+      width: 44px; height: 44px; border-radius: 12px; background: var(--marka); color: #fff;
+      font-weight: 700; font-size: 1.3rem; display: flex; align-items: center; justify-content: center;
+    }
+    .logo strong { display: block; font-size: 1.25rem; color: var(--marka-koyu); }
+    .logo small { display: block; font-size: 0.9rem; color: var(--metin-soluk); }
+    .panel-link {
+      padding: 10px 16px; border-radius: 999px; text-decoration: none; font-weight: 600;
+      color: var(--marka-koyu); border: 1px solid rgba(59, 42, 26, 0.35); background: rgba(255, 255, 255, 0.35);
+    }
+    .panel-link:hover { background: rgba(255, 255, 255, 0.6); }
+
+    /* ---------- Z-Pattern (3): çapraz. Solda tanıtım, sağda sohbet kartı ---------- */
+    .capraz { display: grid; grid-template-columns: 1fr 1.15fr; gap: 28px; align-items: start; }
+    .tanitim h1 { font-size: 2.3rem; line-height: 1.15; margin: 0 0 12px; color: var(--marka-koyu); }
+    .tanitim .giris { font-size: 1.05rem; line-height: 1.55; color: #4a3a2c; margin: 0 0 20px; }
+
+    /* Hizmet kartları: marka öğesi, 3 kart */
+    .hizmetler { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .hizmet {
+      background: rgba(255, 255, 255, 0.35); border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 14px; padding: 14px;
+    }
+    .hizmet .no {
+      display: inline-block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+      color: var(--marka); border: 1px solid var(--marka); border-radius: 999px; padding: 2px 8px;
+    }
+    .hizmet h3 { margin: 10px 0 4px; font-size: 1rem; color: var(--marka-koyu); }
+    .hizmet p { margin: 0; font-size: 0.9rem; line-height: 1.4; color: var(--metin-soluk); }
+
+    /* Glassmorphism: yarı saydam beyaz zemin + arkayı bulanıklaştırma + ince açık kenarlık */
+    .cam {
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 18px; padding: 20px;
+      box-shadow: 0 8px 30px rgba(60, 40, 20, 0.15);
+    }
+    .sohbet-baslik { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+    .sohbet-baslik h2 { margin: 0; font-size: 1.15rem; color: var(--marka-koyu); }
+    .nokta { width: 10px; height: 10px; border-radius: 50%; background: var(--basari); box-shadow: 0 0 0 3px rgba(30, 123, 69, 0.2); }
+
+    /* Sohbet alanı: baloncuklar alt alta, uzun sohbette kendi içinde kayar */
+    #cevapAlani {
+      height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+      padding: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.35);
+    }
+    .baloncuk {
+      max-width: 85%; padding: 10px 14px; border-radius: 14px; line-height: 1.45;
+      white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .baloncuk.asistan { align-self: flex-start; background: rgba(255, 255, 255, 0.9); border-bottom-left-radius: 4px; }
+    .baloncuk.kullanici { align-self: flex-end; background: var(--marka); color: #fff; border-bottom-right-radius: 4px; }
+    .baloncuk.bekleme { opacity: 0.7; font-style: italic; }
+
+    .giris-satiri { display: flex; gap: 10px; margin-top: 12px; align-items: flex-end; }
+    textarea, input {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #c9b7a3;
+      font-size: 1rem; font-family: inherit; background: rgba(255, 255, 255, 0.85); color: var(--metin);
+    }
+    textarea:focus, input:focus { outline: 2px solid var(--marka); outline-offset: 1px; }
+    #mesajGirisi { flex: 1; min-height: 52px; max-height: 140px; resize: vertical; }
+    .ipucu { margin: 6px 0 0; font-size: 0.8rem; color: var(--metin-soluk); }
+
+    button {
+      padding: 12px 20px; border: 0; border-radius: 10px; cursor: pointer;
+      background: var(--marka); color: #fff; font-size: 1rem; font-weight: 600; white-space: nowrap;
+    }
+    button:hover { filter: brightness(1.1); }
+    button:disabled { opacity: 0.6; cursor: wait; }
+
+    /* ---------- Z-Pattern (4): alt çizgi. Form tam genişlikte ---------- */
+    .alt { margin-top: 32px; }
+    .alt h2 { margin: 0 0 4px; font-size: 1.15rem; color: var(--marka-koyu); }
+    .alt .aciklama { margin: 0 0 14px; color: var(--metin-soluk); }
+    .form-satir { display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: end; }
+    label { display: block; font-size: 0.9rem; margin-bottom: 4px; font-weight: 600; color: var(--marka-koyu); }
+
+    /* Durum satırı: hem sohbet hem form buraya mesaj yazar */
+    #durumMesaji { margin-top: 12px; min-height: 1.5em; font-weight: 600; }
+    #durumMesaji.basari { color: var(--basari); }
+    #durumMesaji.hata { color: var(--hata); }
+    #durumMesaji.bilgi { color: var(--metin-soluk); }
+
+    footer { margin-top: 36px; text-align: center; font-size: 0.85rem; color: var(--metin-soluk); }
+
+    /* Mobil: tek kolon, Z sırası yukarıdan aşağıya korunur */
+    @media (max-width: 760px) {
+      .capraz, .form-satir, .hizmetler { grid-template-columns: 1fr; }
+      .tanitim h1 { font-size: 1.8rem; }
+      #cevapAlani { height: 260px; }
+      .form-satir button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sayfa">
+
+    <!-- (1) Sol üst: logo + işletme adı + slogan   (2) Sağ üst: yönetim paneli bağlantısı -->
+    <header class="ust-cizgi">
+      <div class="logo">
+        <!-- isletme_adi[0]: adın ilk harfi (Tam Tur -> T); logo görseli yerine harf kutusu -->
+        <div class="harf" aria-hidden="true">{{ isletme_adi[0] }}</div>
+        <div>
+          <strong>{{ isletme_adi }}</strong>
+          <small>{{ slogan }}</small>
+        </div>
+      </div>
+      <a class="panel-link" href="/dashboard">Yönetim Paneli &rarr;</a>
+    </header>
+
+    <!-- (3) Çapraz: solda tanıtım + hizmetler, sağda sohbet kartı -->
+    <section class="capraz">
+      <div class="tanitim">
+        <h1>{{ slogan }}</h1>
+        {# DEĞİŞTİR: kendi işletmenize göre - tanıtım metni (rehber/rota ifadeleri Tam Tur içindir) #}
+        <p class="giris">
+          Merhaba! Ben {{ isletme_adi }} yapay zekâ asistanıyım. Lisanslı rehberlerimiz, size özel
+          rotalar, grup gezileri ve az bilinen tarihi İstanbul hakkındaki sorularınızı anında
+          yanıtlarım. Size geri dönmemizi isterseniz aşağıya isminizi ve telefonunuzu bırakın.
+        </p>
+
+        {# DEĞİŞTİR: kendi işletmenize göre - üç hizmet kartı (başlık + bir cümle) #}
+        <div class="hizmetler">
+          <article class="hizmet">
+            <span class="no">01</span>
+            <h3>Lisanslı Rehberler</h3>
+            <p>Bakanlık kokartlı, deneyimli rehberlerle bireysel ve kurumsal turlar.</p>
+          </article>
+          <article class="hizmet">
+            <span class="no">02</span>
+            <h3>Özel Rota Planlama</h3>
+            <p>İlgi alanınıza ve zamanınıza göre size özel bir İstanbul rotası.</p>
+          </article>
+          <article class="hizmet">
+            <span class="no">03</span>
+            <h3>Az Bilinen Tarihi Rotalar</h3>
+            <p>Fener-Balat'tan Yedikule'ye, kalabalıktan uzak tarihi geziler.</p>
+          </article>
+        </div>
+      </div>
+
+      <!-- Sohbet kartı (glassmorphism). Ziyaretçi burada soru sorar. -->
+      <div class="cam">
+        <div class="sohbet-baslik">
+          <span class="nokta" aria-hidden="true"></span>
+          <h2>Asistana sorun</h2>
+        </div>
+
+        <!-- Baloncuklar buraya eklenir. aria-live: yeni cevap gelince ekran okuyucu duyurur -->
+        <div id="cevapAlani" aria-live="polite" aria-label="Sohbet geçmişi">
+          <div class="baloncuk asistan">Merhaba! Ben {{ isletme_adi }} asistanıyım. Size nasıl yardımcı olabilirim?</div>
+        </div>
+
+        <div class="giris-satiri">
+          <label for="mesajGirisi" class="gorunmez">Mesajınız</label>
+          <textarea id="mesajGirisi" maxlength="2000" rows="2"
+                    placeholder="Örn: Hafta sonu kaçta açıksınız?"></textarea>
+          <button id="sorBtn" type="button">Sor</button>
+        </div>
+        <p class="ipucu">Enter ile gönderin, Shift+Enter ile yeni satır.</p>
+      </div>
+    </section>
+
+    <!-- (4) Alt: isim/telefon formu. Z-Pattern'in bittiği yer = istediğimiz eylem -->
+    <section class="alt cam">
+      <h2>Size ulaşalım</h2>
+      <p class="aciklama">Bilgilerinizi bırakın, en kısa sürede sizi arayalım.</p>
+
+      <!-- form etiketi sayesinde Enter tuşu da "submit" olayını tetikler; sayfayı yenilemesini JS engeller -->
+      <form id="leadForm" novalidate>
+        <div class="form-satir">
+          <div>
+            <label for="isimGirisi">İsim</label>
+            <input id="isimGirisi" name="isim" type="text" maxlength="100" autocomplete="name" placeholder="Adınız Soyadınız">
+          </div>
+          <div>
+            <label for="telefonGirisi">Telefon</label>
+            <input id="telefonGirisi" name="telefon" type="tel" maxlength="100" autocomplete="tel" placeholder="05xx xxx xx xx">
+          </div>
+          <button id="kaydetBtn" type="submit">Kaydet</button>
+        </div>
+      </form>
+
+      <!-- Hem sohbet hem form hatalarını/başarı mesajlarını buraya yazarız -->
+      <div id="durumMesaji" role="status" aria-live="polite"></div>
+    </section>
+
+    <footer>{{ isletme_adi }} &middot; SmartLead AI ile hazırlandı</footer>
+  </div>
+
+  <script>
+    // ============================================================
+    // 1) Sohbet geçmişi
+    // Backend geçmişi SAKLAMAZ; tarayıcı tutar ve her soruda geri gönderir.
+    // Böylece yapay zekâ önceki konuşmayı hatırlar. Biçim, Groq'un beklediği biçimdir:
+    // [{role: 'user', content: '...'}, {role: 'assistant', content: '...'}]
+    // ============================================================
+    var gecmis = [];
+    var sonKullaniciMesaji = '';   // Kaydet'te "mesaj" alanı olarak gider (ziyaretçi ne sormuştu?)
+    var GECMIS_SINIRI = 10;        // son 10 mesaj yeter; istek şişmesin
+
+    // Sayfadaki elementleri bir kez bulup değişkenlere alıyoruz
+    var mesajGirisi = document.getElementById('mesajGirisi');
+    var sorBtn = document.getElementById('sorBtn');
+    var cevapAlani = document.getElementById('cevapAlani');
+    var isimGirisi = document.getElementById('isimGirisi');
+    var telefonGirisi = document.getElementById('telefonGirisi');
+    var kaydetBtn = document.getElementById('kaydetBtn');
+    var leadForm = document.getElementById('leadForm');
+    var durumMesaji = document.getElementById('durumMesaji');
+
+    // ============================================================
+    // 2) Yardımcılar
+    // ============================================================
+    // Sohbete bir baloncuk ekler. sinif: CSS sınıf(lar)ı - 'kullanici', 'asistan'
+    // ya da cevap beklenirken 'asistan bekleme' (bekleme sınıfı cevap gelince kaldırılır).
+    function baloncukEkle(sinif, metin) {
+      var kutu = document.createElement('div');
+      kutu.className = 'baloncuk ' + sinif;
+      kutu.textContent = metin;     // textContent: HTML değil düz metin basar -> XSS'e karşı güvenli
+      cevapAlani.appendChild(kutu);
+      cevapAlani.scrollTop = cevapAlani.scrollHeight;   // en yeni mesaja kaydır
+      return kutu;
+    }
+
+    // Durum satırına yazar. tur: 'basari' | 'hata' | 'bilgi' (renk CSS'ten gelir)
+    function durumGoster(metin, tur) {
+      durumMesaji.textContent = metin;
+      durumMesaji.className = tur || '';
+    }
+
+    // ============================================================
+    // 3) "Sor": POST /api/sohbet  { mesaj, gecmis }  ->  { basari, cevap } | { basari, hata }
+    // ============================================================
+    async function sor() {
+      if (sorBtn.disabled) { return; }   // buton kilitliyse istek zaten sürüyor; Enter ile ikinci istek gitmesin
+      var mesaj = mesajGirisi.value.trim();
+      if (!mesaj) {
+        durumGoster('Lütfen önce bir mesaj yazın.', 'hata');
+        mesajGirisi.focus();
+        return;
+      }
+
+      // İstek sürerken butonu kilitle (çift tıklama olmasın), mesajı sohbete yaz
+      sorBtn.disabled = true;
+      durumGoster('', '');
+      mesajGirisi.value = '';
+      var kullaniciBaloncugu = baloncukEkle('kullanici', mesaj);
+      var bekleme = baloncukEkle('asistan bekleme', 'Düşünüyorum...');
+
+      try {
+        var yanit = await fetch('/api/sohbet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // Anahtarlar backend ile AYNI kelimeler: mesaj, gecmis
+          body: JSON.stringify({ mesaj: mesaj, gecmis: gecmis })
+        });
+        var veri = await yanit.json();
+
+        if (veri.basari) {
+          // Bekleme baloncuğunu gerçek cevaba çevir
+          bekleme.textContent = veri.cevap;
+          bekleme.classList.remove('bekleme');
+
+          // Konuşmayı hatırlaması için geçmişe ekle, sonra kırp
+          gecmis.push({ role: 'user', content: mesaj });
+          gecmis.push({ role: 'assistant', content: veri.cevap });
+          gecmis = gecmis.slice(-GECMIS_SINIRI);
+          sonKullaniciMesaji = mesaj;
+        } else {
+          // Backend 400/503 döndü: baloncukları kaldır, mesajı geri koy, hatayı göster
+          kullaniciBaloncugu.remove();
+          bekleme.remove();
+          mesajGirisi.value = mesaj;
+          durumGoster(veri.hata || 'Cevap alınamadı.', 'hata');
+        }
+      } catch (hata) {
+        // Ağ yok ya da cevap JSON değil
+        kullaniciBaloncugu.remove();
+        bekleme.remove();
+        mesajGirisi.value = mesaj;
+        durumGoster('Sunucuya ulaşılamadı. Lütfen tekrar deneyin.', 'hata');
+      } finally {
+        sorBtn.disabled = false;   // ne olursa olsun butonu geri aç
+        mesajGirisi.focus();
+      }
+    }
+
+    // ============================================================
+    // 4) "Kaydet": POST /api/leads  { isim, telefon, mesaj }  ->  201 { basari, lead }
+    // ============================================================
+    async function kaydet() {
+      var isim = isimGirisi.value.trim();
+      var telefon = telefonGirisi.value.trim();
+      if (!isim || !telefon) {
+        durumGoster('İsim ve telefon alanları zorunludur.', 'hata');
+        return;
+      }
+
+      kaydetBtn.disabled = true;
+      durumGoster('Kaydediliyor...', 'bilgi');
+
+      try {
+        var yanit = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // Anahtarlar backend ile AYNI kelimeler: isim, telefon, mesaj
+          body: JSON.stringify({ isim: isim, telefon: telefon, mesaj: sonKullaniciMesaji })
+        });
+        var veri = await yanit.json();
+
+        if (yanit.status === 201 && veri.basari) {   // 201 = yeni kayıt oluşturuldu
+          durumGoster('Teşekkürler ' + veri.lead.isim + '! En kısa sürede size ulaşacağız.', 'basari');
+          isimGirisi.value = '';
+          telefonGirisi.value = '';
+        } else {
+          durumGoster(veri.hata || 'Kayıt yapılamadı.', 'hata');
+        }
+      } catch (hata) {
+        durumGoster('Sunucuya ulaşılamadı. Lütfen tekrar deneyin.', 'hata');
+      } finally {
+        kaydetBtn.disabled = false;
+      }
+    }
+
+    // ============================================================
+    // 5) Olayları bağla
+    // ============================================================
+    sorBtn.addEventListener('click', sor);
+
+    // Enter ile gönder; Shift+Enter yeni satır açar
+    mesajGirisi.addEventListener('keydown', function (olay) {
+      if (olay.key === 'Enter' && !olay.shiftKey) {
+        olay.preventDefault();   // textarea'ya satır eklemesin
+        sor();
+      }
+    });
+
+    // Kaydet butonu veya form içinde Enter -> "submit" olayı. Sayfanın yenilenmesini engelle, kaydet() çağır.
+    leadForm.addEventListener('submit', function (olay) {
+      olay.preventDefault();
+      kaydet();
+    });
+  </script>
+</body>
+</html>

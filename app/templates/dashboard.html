@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ isletme_adi }} - Yönetim Paneli</title>
+  <!--
+    app/templates/dashboard.html - Yönetim paneli (B2B). Modül G'nin Flask tarafı.
+    İşletme sahibi, ziyaretçilerin bıraktığı kayıtları (lead) burada görür.
+    Düzen F-Pattern: göz önce üst şeridi soldan sağa tarar (başlık, toplam sayı, Yenile),
+    sonra sol kenardan aşağı iner. Bu yüzden en önemli bilgi olan İSİM ilk ve en kalın kolondur;
+    sonra Telefon, Mesaj, Tarih gelir.
+    Tablo gövdesi (tbody) leadRepeater ID'sini taşır (Wix'teki Repeater'ın karşılığı). Hücre sınıfları
+    isimText / telefonText / mesajText / tarihText Wix element ID'leriyle aynıdır; HTML'de bir ID
+    sayfada yalnızca bir kez olabileceği için satır hücrelerinde ID yerine class kullanılır.
+    Veriyi JavaScript GET /api/leads'ten çeker; bu dosyada SQL yoktur.
+  -->
+  <style>
+    /* Marka renkleri (index.html ile aynı).  DEĞİŞTİR: kendi işletmenize göre */
+    :root {
+      --marka: #1f4e79;
+      --marka-koyu: #12304d;
+      --metin: #1f2933;
+      --metin-soluk: #4f5f6f;
+      --zemin: #eef3f8;
+      --cizgi: #d9e3ee;
+      --basari: #1e7b45;
+      --hata: #b42318;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: var(--zemin); color: var(--metin); }
+    .sayfa { max-width: 1040px; margin: 0 auto; padding: 24px 16px 40px; }
+
+    /* ---------- F-Pattern üst çizgi 1: başlık ---------- */
+    .ust { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+    .ust h1 { margin: 0; font-size: 1.5rem; color: var(--marka-koyu); }
+    .ust h1 span { font-weight: 400; color: var(--metin-soluk); }
+    .ust .slogan { margin: 2px 0 0; color: var(--metin-soluk); }
+    .geri { color: var(--marka-koyu); text-decoration: none; font-weight: 600; }
+    .geri:hover { text-decoration: underline; }
+
+    /* ---------- F-Pattern üst çizgi 2: özet şeridi (toplam, durum, Yenile) ---------- */
+    .serit {
+      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+      background: #fff; border-radius: 12px; padding: 14px 18px; margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(60, 40, 20, 0.08);
+    }
+    .sayac .etiket { display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--metin-soluk); }
+    #toplamText { font-size: 1.6rem; font-weight: 700; color: var(--marka-koyu); line-height: 1.2; }
+    #durumMesaji { font-weight: 600; color: var(--metin-soluk); min-height: 1.4em; }
+    #durumMesaji.basari { color: var(--basari); }
+    #durumMesaji.hata { color: var(--hata); }
+    .serit button { margin-left: auto; }
+    button {
+      padding: 10px 18px; border: 0; border-radius: 10px; cursor: pointer;
+      background: var(--marka); color: #fff; font-weight: 600; font-size: 0.95rem;
+    }
+    button:hover { filter: brightness(1.1); }
+    button:disabled { opacity: 0.6; cursor: wait; }
+
+    /* ---------- F-Pattern gövde: soldan sağa tablo, sol kolon vurgulu ---------- */
+    .tablo-kutu { background: #fff; border-radius: 12px; overflow-x: auto; box-shadow: 0 4px 16px rgba(60, 40, 20, 0.08); }
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--cizgi); vertical-align: top; }
+    th { background: var(--marka); color: #fff; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.02em; }
+    th.isim { width: 24%; }
+    tbody tr:hover { background: #fbf7f2; }
+    td.isimText { font-weight: 700; color: var(--marka-koyu); }       /* F-Pattern: ilk kolon en kalın */
+    td.telefonText { white-space: nowrap; }
+    td.mesajText { color: #4a3a2c; max-width: 380px; }
+    td.tarihText { white-space: nowrap; color: var(--metin-soluk); font-size: 0.9rem; }
+    td.bos { text-align: center; padding: 36px 14px; color: var(--metin-soluk); font-style: italic; }
+
+    footer { margin-top: 24px; text-align: center; font-size: 0.85rem; color: var(--metin-soluk); }
+
+    @media (max-width: 760px) {
+      .serit button { margin-left: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sayfa">
+
+    <!-- F-Pattern 1. yatay çizgi: başlık + slogan solda, geri bağlantısı sağda -->
+    <header class="ust">
+      <div>
+        <h1>{{ isletme_adi }} <span>&middot; Yönetim Paneli</span></h1>
+        <p class="slogan">{{ slogan }}</p>
+      </div>
+      <a class="geri" href="/">&larr; Karşılama sayfası</a>
+    </header>
+
+    <!-- F-Pattern 2. yatay çizgi: toplam kayıt, durum ve Yenile -->
+    <section class="serit" aria-label="Özet">
+      <div class="sayac">
+        <span class="etiket">Toplam kayıt</span>
+        <strong id="toplamText">&ndash;</strong>
+      </div>
+      <div class="sayac">
+        <span class="etiket">Durum</span>
+        <span id="durumMesaji" role="status" aria-live="polite">Kayıtlar yükleniyor...</span>
+      </div>
+      <button id="yenileBtn" type="button">Yenile</button>
+    </section>
+
+    <!-- F-Pattern gövde: tablo. İsim ilk kolon; göz sol kenardan aşağı iner -->
+    <section class="tablo-kutu">
+      <table>
+        <thead>
+          <tr>
+            <th class="isim" scope="col">İsim</th>
+            <th scope="col">Telefon</th>
+            <th scope="col">Mesaj</th>
+            <th scope="col">Tarih</th>
+          </tr>
+        </thead>
+        <!-- Satırlar JavaScript ile GET /api/leads cevabından doldurulur; her satır data-id taşır -->
+        <tbody id="leadRepeater"></tbody>
+      </table>
+    </section>
+
+    <footer>{{ isletme_adi }} &middot; SmartLead AI ile hazırlandı</footer>
+  </div>
+
+  <script>
+    var leadRepeater = document.getElementById('leadRepeater');
+    var toplamText = document.getElementById('toplamText');
+    var durumMesaji = document.getElementById('durumMesaji');
+    var yenileBtn = document.getElementById('yenileBtn');
+
+    // ---------- Yardımcılar ----------
+    // Durum satırına yazar. tur: 'basari' | 'hata' | '' (renk CSS'ten gelir). index.html'deki ile aynı.
+    function durumGoster(metin, tur) {
+      durumMesaji.textContent = metin;
+      durumMesaji.className = tur || '';
+    }
+
+    // SQLite tarihi "2026-10-10 14:05:33" biçiminde ve UTC saatindedir.
+    // JS'in anlaması için "2026-10-10T14:05:33Z" yapar, sonra tarayıcının
+    // yerel saatine ve Türkçe biçimine çevirir: "10 Ekim 2026 17:05".
+    function tarihiBicimle(ham) {
+      if (!ham) { return '-'; }
+      var tarih = new Date(ham.replace(' ', 'T') + 'Z');
+      if (isNaN(tarih.getTime())) { return ham; }   // çevrilemezse olduğu gibi göster
+      return tarih.toLocaleString('tr-TR', {
+        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    // Bir tablo hücresi (td) oluşturur. textContent: ziyaretçinin yazdığı metin
+    // HTML olarak değil düz metin olarak basılır (XSS'e karşı güvenli).
+    function hucre(sinif, metin) {
+      var td = document.createElement('td');
+      td.className = sinif;
+      td.textContent = metin;
+      return td;
+    }
+
+    // Tablo boşken veya hata varken tek hücrelik bilgi satırı
+    function bosSatir(metin) {
+      var tr = document.createElement('tr');
+      var td = hucre('bos', metin);
+      td.colSpan = 4;
+      tr.appendChild(td);
+      return tr;
+    }
+
+    // ---------- Veri çekme: GET /api/leads -> { basari, leads: [ {id, _id, isim, telefon, mesaj, tarih}, ... ] } ----------
+    async function leadleriYukle() {
+      yenileBtn.disabled = true;
+      durumGoster('Kayıtlar yükleniyor...', '');
+
+      try {
+        var yanit = await fetch('/api/leads');
+        var veri = await yanit.json();
+        leadRepeater.innerHTML = '';   // eski satırları temizle
+
+        if (!veri.basari) {
+          toplamText.textContent = '–';
+          leadRepeater.appendChild(bosSatir('Kayıtlar yüklenemedi.'));
+          durumGoster(veri.hata || 'Kayıtlar okunamadı.', 'hata');
+          return;
+        }
+
+        toplamText.textContent = veri.leads.length;
+
+        // Boş durum: henüz kimse form doldurmamış
+        if (veri.leads.length === 0) {
+          leadRepeater.appendChild(bosSatir('Henüz kayıt yok. İlk ziyaretçi formu doldurunca burada görünecek.'));
+          durumGoster('Kayıt bekleniyor.', '');
+          return;
+        }
+
+        // Her kayıt için bir satır: İsim | Telefon | Mesaj | Tarih  (backend en yeniyi ilk gönderir)
+        veri.leads.forEach(function (lead) {
+          var tr = document.createElement('tr');
+          tr.setAttribute('data-id', lead._id);   // Wix Repeater'daki _id'nin karşılığı
+          tr.appendChild(hucre('isimText', lead.isim));
+          tr.appendChild(hucre('telefonText', lead.telefon));
+          tr.appendChild(hucre('mesajText', lead.mesaj || '-'));   // mesaj opsiyonel; boşsa tire
+          var tarihHucre = hucre('tarihText', tarihiBicimle(lead.tarih));
+          tarihHucre.title = lead.tarih + ' (UTC)';               // fareyle üzerine gelince ham tarih
+          tr.appendChild(tarihHucre);
+          leadRepeater.appendChild(tr);
+        });
+
+        var simdi = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        durumGoster('Güncellendi ' + simdi + ' (en yeni kayıt ilk sırada)', 'basari');
+      } catch (hata) {
+        // Ağ yok ya da cevap JSON değil
+        durumGoster('Sunucuya ulaşılamadı. Lütfen tekrar deneyin.', 'hata');
+      } finally {
+        yenileBtn.disabled = false;   // finally: hata olsa da olmasa da çalışır
+      }
+    }
+
+    yenileBtn.addEventListener('click', leadleriYukle);
+    leadleriYukle();   // sayfa açılınca bir kez yükle
+  </script>
+</body>
+</html>
