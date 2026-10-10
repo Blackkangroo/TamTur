@@ -1,0 +1,16 @@
+# Gizli anahtarlar - ASLA Git'e eklenmez
+.env
+
+# Sanal ortam
+venv/
+
+# Python geçici dosyaları
+__pycache__/
+*.pyc
+
+# SQLite veritabanı dosyaları (her ortam kendi veritabanını oluşturur)
+*.db
+
+# Test ve Flask geçici klasörleri
+.pytest_cache/
+instance/
