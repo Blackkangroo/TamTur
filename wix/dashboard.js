@@ -11,7 +11,7 @@
 import { fetch } from 'wix-fetch';
 
 // Backend adresi. Sonunda "/" OLMASIN.
-const API_URL = 'http://localhost:5000'; // DEĞİŞTİR: Render adresiniz (örn. https://smartlead-ai.onrender.com)
+const API_URL = 'https://tamtur.onrender.com'; // DEĞİŞTİR: Render adresiniz (örn. https://smartlead-ai.onrender.com)
 
 // ---------------------------------------------------------------
 // Sayfa hazır olunca: önce satır şablonunu tanımla, SONRA veriyi çek

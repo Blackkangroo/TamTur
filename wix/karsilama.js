@@ -10,7 +10,7 @@
 import { fetch } from 'wix-fetch';   // Wix'in kendi fetch'i; tarayıcıdaki fetch ile aynı şekilde kullanılır
 
 // Backend adresi. Sonunda "/" OLMASIN; yollar aşağıda "/api/..." olarak ekleniyor.
-const API_URL = 'http://localhost:5000'; // DEĞİŞTİR: Render adresiniz (örn. https://smartlead-ai.onrender.com)
+const API_URL = 'https://tamtur.onrender.com'; // DEĞİŞTİR: Render adresiniz (örn. https://smartlead-ai.onrender.com)
 
 // ---------------------------------------------------------------
 // Sohbet geçmişi

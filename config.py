@@ -54,7 +54,7 @@ class Config:
     # Model adı: yönerge llama-3.1-8b-instant diyordu; Groq o modeli Ekim 2026'da kaldırdı
     # (istek 404 model_not_found dönüyordu). Yeni model .env'deki AI_MODEL ile
     # değiştirilebilir; kodun başka yerine dokunmak gerekmez.
-    AI_MODEL = os.environ.get('AI_MODEL', 'qwen/qwen3.8-27b')
+    AI_MODEL = os.environ.get('AI_MODEL', 'openai/gpt-oss-120b')
 
     # Tarayıcıdan API'ye istek atabilecek siteler (liste)
     CORS_ORIGINS = _cors_listesi()

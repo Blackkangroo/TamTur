@@ -13,7 +13,7 @@
 
 services:
   - type: web                   # Dışarıdan HTTP isteği alan bir web servisi
-    name: tamtur         # DEĞİŞTİR (isteğe bağlı): adres bundan türer -> https://smartlead-ai-xxxx.onrender.com
+    name: smartlead-ai          # DEĞİŞTİR (isteğe bağlı): adres bundan türer -> https://smartlead-ai-xxxx.onrender.com
     runtime: python             # Eski belgelerde "env: python" yazar; aynı şey
     plan: free                  # Ücretsiz plan: boşta kalınca uyur, ilk istek 30-60 sn sürebilir
     buildCommand: pip install -r requirements.txt   # Yönerge Modül H: Build Command
@@ -32,5 +32,5 @@ services:
       - key: CORS_ORIGINS
         value: "*"              # DEĞİŞTİR: Wix adresiniz hazır olunca daraltın, örn. https://kullanici.wixsite.com (sayfa yolu /sitem YAZILMAZ)
       - key: AI_MODEL
-        value: qwen/qwen3.8-27b   # yönergedeki llama-3.1-8b-instant Groq’tan kaldırıldı (Ekim 2026)
+        value: openai/gpt-oss-120b   # yönergedeki llama-3.1-8b-instant Groq’tan kaldırıldı (Ekim 2026)
       # PORT'u Render kendisi verir; DATABASE_URL yazılmazsa proje kökündeki smartlead.db kullanılır.
