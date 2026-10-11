@@ -1,0 +1,36 @@
+# render.yaml - Render "Blueprint" dosyası (Modül H, İSTEĞE BAĞLI kolaylık).
+#
+# Render panosunda "New > Blueprint" deyip bu depoyu seçerseniz aşağıdaki ayarlar
+# elle tıklamadan uygulanır. Bu dosya olmadan da olur: README'deki Render adımlarında
+# aynı değerleri panoya elle girersiniz; ikisi de aynı sonucu verir.
+#
+# Gizli anahtar (GROQ_API_KEY) bu dosyaya YAZILMAZ. "sync: false" demek
+# "ilk kurulumda panodan elle sor" demektir; böylece anahtar GitHub'a girmez.
+#
+# Not: Ücretsiz planda disk kalıcı değildir; her yeniden yayında (deploy) ve uzun
+# uyku sonrası smartlead.db sıfırlanır. Sunum için yeterlidir; kalıcı kayıt
+# gerekirse Render Disk (ücretli) ya da dış bir veritabanı gerekir.
+
+services:
+  - type: web                   # Dışarıdan HTTP isteği alan bir web servisi
+    name: tamtur         # DEĞİŞTİR (isteğe bağlı): adres bundan türer -> https://smartlead-ai-xxxx.onrender.com
+    runtime: python             # Eski belgelerde "env: python" yazar; aynı şey
+    plan: free                  # Ücretsiz plan: boşta kalınca uyur, ilk istek 30-60 sn sürebilir
+    buildCommand: pip install -r requirements.txt   # Yönerge Modül H: Build Command
+    startCommand: gunicorn run:app                  # Yönerge Modül H: Start Command (run.py içindeki "app")
+    healthCheckPath: /health    # Render bu adrese bakar; cevap gelirse servis "sağlıklı" sayılır
+    autoDeploy: true            # GitHub'a her push'ta yeniden yayınla
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7           # Render'ın kullanacağı Python. Kod 3.9+ uyumlu; 3.12 güvenli seçim
+      - key: FLASK_ENV
+        value: production       # config.py -> ProductionConfig (DEBUG=False)
+      - key: SECRET_KEY
+        generateValue: true     # Render uzun, rastgele bir değer üretir; elle yazmanıza gerek yok
+      - key: GROQ_API_KEY
+        sync: false             # Panodan ELLE girilir; bu dosyada ve GitHub'da asla yer almaz
+      - key: CORS_ORIGINS
+        value: "*"              # DEĞİŞTİR: Wix adresiniz hazır olunca daraltın, örn. https://kullanici.wixsite.com (sayfa yolu /sitem YAZILMAZ)
+      - key: AI_MODEL
+        value: qwen/qwen3.8-27b   # yönergedeki llama-3.1-8b-instant Groq’tan kaldırıldı (Ekim 2026)
+      # PORT'u Render kendisi verir; DATABASE_URL yazılmazsa proje kökündeki smartlead.db kullanılır.
