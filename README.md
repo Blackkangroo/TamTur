@@ -13,7 +13,7 @@ Bu proje "SmartLead AI Öğrenci Proje Yönergesi"ne göre, Separation of Concer
 | Karşılama sayfası | https://tamtur.onrender.com/ |
 | Yönetim paneli | https://tamtur.onrender.com/dashboard |
 | Kaynak kod (GitHub) | https://github.com/Blackkangroo/TamTur |
-| Wix | Velo kodu `wix/` klasöründe hazır; site bağlantısı sonraki adım. Arayüz şimdilik Flask şablonlarıyla canlıda. |
+| Wix (iki arayüz) | Karşılama: https://alpgecer.wixstudio.com/tamtur · Yönetim paneli: https://alpgecer.wixstudio.com/tamtur/blank |
 
 Render ücretsiz planı boşta kalınca uyur; ilk istek 30-60 saniye sürebilir. Önce `/health` adresini açıp uyandırın.
 

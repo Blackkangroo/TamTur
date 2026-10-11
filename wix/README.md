@@ -1,11 +1,12 @@
 # Wix Velo Bağlantısı — Adım Adım (Modül G)
 
-Bu klasördeki iki dosya, Wix sitenizdeki iki sayfanın **kod**udur:
+Bu klasördeki dosyalar, Wix sitenizdeki sayfaların **kod**udur:
 
 | Dosya | Wix sayfası | Ne yapar |
 |---|---|---|
-| `karsilama.js` | Karşılama (B2C) | Ziyaretçi soru sorar (`POST /api/sohbet`), isim/telefon bırakır (`POST /api/leads`) |
+| `karsilama.js` | Karşılama (B2C) | Ziyaretçi soru sorar (`POST /api/sohbet`), isim/telefon bırakır (`POST /api/leads`); hero ve hizmet kartı metinlerini yazar |
 | `dashboard.js` | Panel (B2B) | Kayıtları çeker (`GET /api/leads`) ve Repeater'da listeler |
+| `masterPage.js` | Tüm sayfalar (header/footer) | Header'daki işletme adını ve footer telif satırını yazar; sayfa kodu buraya yapıştırılmaz |
 
 Flask projesindeki `app/templates/index.html` ve `dashboard.html` aynı işi yapan
 **yedek/demo arayüz**dür. Wix'teki element ID'leri ve JSON anahtarları onlarla birebir
@@ -16,6 +17,16 @@ aynıdır; bu yüzden Flask sayfasında çalışan bir şey, aynı ID'lerle Wix'
 > gördüyseniz devam edin.
 
 ---
+
+> [!note] Tam Tur sitesi Wix Studio ile kuruldu (11 Eki 2026)
+> Yayın adresi: https://alpgecer.wixstudio.com/tamtur (Karşılama) ve https://alpgecer.wixstudio.com/tamtur/blank (Panel).
+> Hesabın yeni "Harmony" editöründe Velo kod paneli yoktu; site Wix Studio çalışma alanına taşındı,
+> kod Studio'nun `{ }` Code panelinden girildi. Bu klasördeki `karsilama.js` ve `dashboard.js`
+> Studio'daki sayfa kodlarının birebir kopyasıdır. Editörde Türkçe karakter girişi sorunlu olduğu
+> için sabit metinler (`markaMetinleri`) ve hizmet kartları (`repeater1`) kodla yazılır.
+> Tasarım (11 Eki akşam): başlık fontu Ogg (serif), hero solda başlık + paragraf + "Hemen Rezervasyon Yap"
+> butonu, sağda Fener sokağı fotoğrafı; sohbet bölümünde Galata panoraması üstünde cam görünümlü (glassmorphism)
+> iki kutu: sohbet sağda, isim/telefon formu altta (yönergedeki Z-Pattern).
 
 ## 0. Önemli: Wix'ten `localhost`'a ulaşılamaz
 
@@ -171,6 +182,7 @@ Bir anahtarı değiştirmek gerekirse backend + Flask şablonları + bu klasörd
 | `durumMesaji`'nda "Lütfen bir mesaj yazın" ama yazdım | `mesajGirisi` ID'si başka bir elementte | ID'yi doğru Text Input'a ver |
 | Türkçe karakterler `\u015e` gibi kaçış kodu olarak görünüyor | Eski backend sürümü | `app/__init__.py`'de `app.json.ensure_ascii = False` var mı kontrol et |
 | Demo modu cevabı geliyor | Render'da `GROQ_API_KEY` tanımlı değil | Render → Environment → `GROQ_API_KEY` ekle, servisi yeniden başlat |
+| Header'da hâlâ "Business Name" yazıyor | `masterPage.js` içinde header satırı yok (11 Eki'de yanlışlıkla sayfa kodunun kopyası duruyordu) | `wix/masterPage.js` içeriğini Studio'daki `masterPage.js`'e yapıştır; sayfa kodu oraya girmez |
 
 **Hata ayıklama:** Preview'da **F12 → Console** sekmesi; Velo kodundaki `console.log`
 satırları ve tarayıcının ağ hataları (CORS, 404, mixed content) burada görünür.
