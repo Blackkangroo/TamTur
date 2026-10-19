@@ -36,7 +36,7 @@ def create_app(config_name=None, ayarlar=None):
     app.json.ensure_ascii = False
 
     # 2) CORS aç: Wix sitesi (farklı adres) tarayıcıdan API'ye istek atabilsin
-    CORS(app, origins=app.config['CORS_ORIGINS'])
+    CORS(app)
 
     # 3) Veritabanı tablosunu hazırla (get_db current_app'e ihtiyaç duyar -> app context)
     with app.app_context():
